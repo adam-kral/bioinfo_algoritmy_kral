@@ -142,6 +142,17 @@ class MSA(MultipleSeqAlignment):
     def sum_of_pairs(self, scoring_matrix, gap_score=0):
         return sum((self.sum_of_pairs_column(i, scoring_matrix, gap_score) for i in range(len(self[0]))))
 
+    # returns list of tuples (position, score)
+    def top_n_scoring_positions(self, n, scoring_matrix, gap_score=0):
+        column_scores = []
+
+        for i in range(self.get_alignment_length()):
+            column_scores.append((i, self.sum_of_pairs_column(i, scoring_matrix, gap_score)))
+
+        column_scores.sort(key=lambda t: t[1], reverse=True)
+
+        return column_scores[:n]
+
 
 if __name__ == '__main__':
     import os
@@ -163,3 +174,5 @@ if __name__ == '__main__':
 
     print(msa.sum_of_pairs_column(60, scoring_matrix))
     print(msa.sum_of_pairs(scoring_matrix))
+
+    print(msa.top_n_scoring_positions(10, scoring_matrix))

@@ -51,7 +51,23 @@ class Chain(BioChain, CountResiduesMixin, CountAtomsMixin):
     pass
 
 class Residue(BioResidue, CountAtomsMixin):
-    pass
+    @property
+    def hetatm_flag(self):
+        return self.id[0]
+
+    @property
+    def is_water(self):
+        return self.hetatm_flag == 'W'
+
+    @property
+    def is_hetatm_excl_w(self):
+        return self.hetatm_flag.starts_with('H_')
+
+    @property
+    def is_aa_residue(self):
+        return not self.hetatm_flag.strip()
+
+
 
 
 # have to do it this way, Bio.PDB.StructureBuilder is not extensible at all, cannot provide my own subclasses to it, I would have to copy

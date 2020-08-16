@@ -1,0 +1,18 @@
+
+
+structure_related_properties
+- dokončit dle zadani
+
+combining_structure_and_sequence
+- more test data (results not great..., 2.5 A only zinc binding, DNA-binding res. 5 A, but distribution not conclusive)
+
+structure_superposition
+- alignment mapping
+- alignment with scoring function (structure)
+-> min. RMSD pomocí kabsche
+
+Konec
+- celková kontrola
+- přepsání nehezkého
+- demo v jupyteru
+

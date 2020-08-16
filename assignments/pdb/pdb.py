@@ -2,7 +2,7 @@
 
 from collections import OrderedDict
 from unittest.mock import patch
-from Bio.PDB import PDBParser
+from Bio.PDB import PDBParser, is_aa
 
 # in Python 3.8 there will be cached_property
 from functools import lru_cache
@@ -48,9 +48,21 @@ class Model(BioModel, CountChainsMixin, CountResiduesMixin, CountAtomsMixin):
     pass
 
 class Chain(BioChain, CountResiduesMixin, CountAtomsMixin):
-    pass
+    @property
+    def aa_residues(self):
+        return filter(lambda r: r.is_aa, self.get_residues())
 
 class Residue(BioResidue, CountAtomsMixin):
+    def __repr__(self):
+        # based on original
+        """Return the residue full id."""
+        resname = self.get_resname()
+        hetflag, resseq, icode = self.get_id()
+
+        chainstr = f'ch={self.get_parent().id} ' if self.get_parent() else ''
+
+        return f'<Residue {resname} het={hetflag} {chainstr}resseq={resseq} icode={icode}>'
+
     @property
     def hetatm_flag(self):
         return self.id[0]
@@ -64,15 +76,16 @@ class Residue(BioResidue, CountAtomsMixin):
         return self.hetatm_flag.starts_with('H_')
 
     @property
-    def is_aa_residue(self):
-        return not self.hetatm_flag.strip()
+    def is_aa(self):
+        return is_aa(self)
+        # return not self.hetatm_flag.strip() and 'CA' in (a.get_name() for a in self.get_atoms())
 
 
 
 
 # have to do it this way, Bio.PDB.StructureBuilder is not extensible at all, cannot provide my own subclasses to it, I would have to copy
 # in a lot of its code
-
+# patch is used as context manager, therefore calling __enter__
 patch('Bio.PDB.StructureBuilder.Structure', Structure).__enter__()
 patch('Bio.PDB.StructureBuilder.Model', Model).__enter__()
 patch('Bio.PDB.StructureBuilder.Chain', Chain).__enter__()
@@ -83,28 +96,28 @@ class DistanceAnalyzer:
     # entity can be a (single-model) structure, a model or a chain
     def __init__(self, entity):
         self.structure = entity
-        self.atoms = {atom.get_serial_number(): atom for atom in entity.get_atoms()}
 
     def _atoms_within_d_to_atom(self, hetatm, d):
-        for atom in structure.get_atoms():
-            candidate_d = atom-hetatm
-            if candidate_d <= d:
-                yield candidate_d, atom
+        for atom in self.structure.get_atoms():
+            actual_d = atom-hetatm
+            if actual_d <= d:
+                yield actual_d, atom
 
     # return list of tuples (distance, atom) sorted by distance to the hetero atom
-    # complexity: Theta(#structure_atoms)
+    # complexity: Theta(#structure_atoms) todo určitě ne!
     # note: includes itself if `d` non-negative
-    def atoms_within_d_to_atom(self, atom_serial, d):
-        return sorted(list(self._atoms_within_d_to_atom(self.atoms[atom_serial], d)), key=lambda tup: tup[0])
+    def atoms_within_d_to_atom(self, atom_of_interest, d):
+        return sorted(list(self._atoms_within_d_to_atom(atom_of_interest, d)), key=lambda tup: tup[0])
 
     # return list of tuples (distance, residue) sorted by distance := d(closest residue's atom; hetero atom)
     # complexity: Theta(#structure_atoms)
     # note: includes itself if `d` non-negative
-    def residues_with_d_to_atom(self, atom_serial, d):
+    def residues_within_d_to_atom(self, atom_of_interest, d):
         residues = OrderedDict()
 
-        for dist, atom in self.atoms_within_d_to_atom(atom_serial, d):
-            if atom.parent not in residues:
+        for dist, atom in self.atoms_within_d_to_atom(atom_of_interest, d):
+            # set lowest distance yet
+            if atom.parent not in residues or residues[atom.parent] > dist:
                 residues[atom.parent] = dist
 
         return [(dist, residue) for residue, dist in residues.items()]
@@ -129,8 +142,12 @@ def structure_width(entity):
 # entity can be a (single-model) structure, a model or a chain
 def get_hetero_atoms(entity):
     for residue in entity.get_residues():
-        # ignore non-hetero atoms and water ('W')
-        if not residue.id[0].startswith('H_'):
+        # # ignore non-hetero atoms and water ('W')
+        # if not residue.id[0].startswith('H_'):
+        #     continue
+        # # alternatively residue.id[0] != '' (that's the hetero field, but could be also water as in their comments)
+
+        if residue.id[0] == 'W' or residue.is_aa:
             continue
 
         for atom in residue:
@@ -145,20 +162,20 @@ if __name__ == '__main__':
     print(structure.count_atoms)
 
     hetero_atoms = list(get_hetero_atoms(structure))
+    #
+    # a = DistanceAnalyzer(structure)
+    #
+    # hetatm = hetero_atoms[0]
+    #
+    # print(a.atoms_within_d_to_atom(hetatm, 10))
+    # print(a.residues_within_d_to_atom(hetatm, 10))
 
-    a = DistanceAnalyzer(structure)
-
-    hetatm_serial = hetero_atoms[0].get_serial_number()
-
-    print(a.atoms_within_d_to_atom(hetatm_serial, 10))
-    print(a.residues_with_d_to_atom(hetatm_serial, 10))
-
-    print(structure_width(structure))
-    print(structure_width(structure[0]))
+    # print(structure_width(structure))
+    # print(structure_width(structure[0]))
 
     for chain in structure[0]:
         print(chain)
-        print(structure_width(chain))
+        # print(structure_width(chain))
 
     for model in structure:
         print(model)
@@ -172,3 +189,4 @@ if __name__ == '__main__':
                         print(atom.get_name())
                         print(atom.get_serial_number())
                     print(residue.id)
+

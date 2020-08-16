@@ -11,6 +11,7 @@ from Bio.SubsMat import MatrixInfo
 # parser based on http://meme-suite.org/doc/clustalw-format.html
 
 
+# block = block of text where a line contains a chunk of the aligned sequence
 class MSAFromBlocksBuilder:
     def __init__(self, first_block):
         self.seqs = []
@@ -79,7 +80,8 @@ def parse_block(file):
     return block_lines
 
 
-# ensures, that even after the last seq block there is an empty line (thus adding 2 lines, sometimes a file does not even end with a newline!)
+# wrapper ensuring, that even after the last seq block there is an empty line (thus adding 2 lines, sometimes a file does not even end
+# with a newline!)
 class ProperlyEndedClustalFile:
     def __init__(self, file):
         self.file = file
@@ -101,7 +103,7 @@ def parse_clustal(file_handle):
     if not file.readline().startswith('CLUSTAL'):
         raise InvalidFileFormatException('first line should start with `CLUSTAL`')
 
-    if not file.readline() == '\n':
+    if file.readline() != '\n':
         raise InvalidFileFormatException('second line must be empty')
 
     block = parse_block(file)
@@ -175,4 +177,11 @@ if __name__ == '__main__':
     print(msa.sum_of_pairs_column(60, scoring_matrix))
     print(msa.sum_of_pairs(scoring_matrix))
 
+    # You should be able to specify a sequence in the MSA and the method would return conservation scores for the positions of the MSA.
+    print('Sum of pairs:', sum((msa.sum_of_pairs_column(i, scoring_matrix) for i in range(50, 100))))
+
+    # Moreover, one should be able to identify top N scoring positions in the MSA.
     print(msa.top_n_scoring_positions(10, scoring_matrix))
+
+    for seq_record in msa:
+        print(seq_record.id)

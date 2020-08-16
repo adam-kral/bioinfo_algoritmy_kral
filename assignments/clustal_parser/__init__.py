@@ -1,0 +1,1 @@
+from .clustal_parser import parse_clustal

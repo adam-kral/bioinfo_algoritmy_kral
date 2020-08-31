@@ -1,18 +1,35 @@
 
+[done]
+structure_related_properties 1)
+- dokončit dle zadani (2h) (real 3,25 h)
+- todo v ramci konec, nekonzistence u neigboratom counts a vubec u tech ne-min veci (atomy z cele structure vs jen residuí)
 
-structure_related_properties
-- dokončit dle zadani
 
-combining_structure_and_sequence
-- more test data (results not great..., 2.5 A only zinc binding, DNA-binding res. 5 A, but distribution not conclusive)
 
-structure_superposition
+combining_structure_and_sequence 3)
+- todo more test data (results not great..., 2.5 A only zinc binding, DNA-binding res. 5 A, but distribution not conclusive)
+(1h)
+
+
+structure_superposition 2)
 - alignment mapping
-- alignment with scoring function (structure)
--> min. RMSD pomocí kabsche
+[done]- alignment with scoring function (structure)  - might need to change a little my alignment program
+-> get mapped residues' coordinates (ignore gapped;; just C_alphas ok)
+-> min. RMSD pomocí kabsche pip install rmsd, https://github.com/charnley/rmsd/blob/master/example.py)
+-> Then transform (with centering) all the residues of the two molecules
+-> write those coordinates to a new pdb (both molecules)
+[done] test data for simple align + good align
+(2h)
 
-Konec
+
+
+skorovací funkce - # atomů/zbytků v okolí, podíl polární, nepol. atp. (musí vůbec skorovací fce něco splňovat?? (0))
+1) uloží se do pdb všechno, co tam bylo tím postupem set_structure?)
+
+
+todo
+Konec (1+2+1.5= 4.5 h)
 - celková kontrola
-- přepsání nehezkého
+- přepsání nehezkého (to jedno nehezké je done)
 - demo v jupyteru
 

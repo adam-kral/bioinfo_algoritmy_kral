@@ -80,9 +80,10 @@ def parse_block(file):
     return block_lines
 
 
-# wrapper ensuring, that even after the last seq block there is an empty line (thus adding 2 lines, sometimes a file does not even end
-# with a newline!)
 class ProperlyEndedClustalFile:
+    """ Wrapper ensuring, that even after the last seq block there is an empty line (thus adding 2 lines, sometimes a file does not even
+    end with a newline!) """
+
     def __init__(self, file):
         self.file = file
         self.added_newlines = 0
@@ -121,10 +122,12 @@ def parse_clustal(file_handle):
 
 
 class MSA(MultipleSeqAlignment):
-    # scoring matrix dict, where key = pair of symbols and value = score for that pair
-    #   example: {('A', 'G'): 5, ...}
-    # can be only triangular
     def sum_of_pairs_column(self, column_index, scoring_matrix, gap_score=0):
+        """
+        :param dict scoring_matrix: key = pair of symbols, value = score for that pair
+            example: {('A', 'G'): 5, ...}
+            can be only triangular
+        """
         sum = 0
 
         for i in range(len(self)):
@@ -144,8 +147,8 @@ class MSA(MultipleSeqAlignment):
     def sum_of_pairs(self, scoring_matrix, gap_score=0):
         return sum((self.sum_of_pairs_column(i, scoring_matrix, gap_score) for i in range(len(self[0]))))
 
-    # returns list of tuples (position, score)
     def top_n_scoring_positions(self, n, scoring_matrix, gap_score=0):
+        """ returns list of tuples (position, score) """
         column_scores = []
 
         for i in range(self.get_alignment_length()):

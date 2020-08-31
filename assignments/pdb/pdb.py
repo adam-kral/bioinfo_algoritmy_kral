@@ -45,7 +45,10 @@ class Structure(BioStructure, CountModelsMixin, CountChainsMixin, CountResiduesM
     pass
 
 class Model(BioModel, CountChainsMixin, CountResiduesMixin, CountAtomsMixin):
-    pass
+    @property
+    def aa_residues(self):
+        for chain in self:
+            yield from chain.aa_residues
 
 class Chain(BioChain, CountResiduesMixin, CountAtomsMixin):
     @property

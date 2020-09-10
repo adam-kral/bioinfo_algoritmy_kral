@@ -7,7 +7,12 @@ structure_related_properties 1)
 
 
 combining_structure_and_sequence 3)
-- todo more test data (results not great..., 2.5 A only zinc binding, DNA-binding res. 5 A, but distribution not conclusive)
+- [done] more test data (results not great..., 2.5 A only zinc binding, DNA-binding res. 5 A, but distribution not conclusive)
+- done - chains B and C have high conservation rates for dna binding (4 A), chain A not that much. All three chains have higher conservation
+- [not done] zobrazit ne jen active a non active, ale odlisit zinc a dna a spustit to pro vsechny chainy
+    - mozna jindy
+
+rates for zinc binding residues
 (1h)
 
 

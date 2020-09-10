@@ -38,13 +38,13 @@ def parse_block_line(line):
     parts = line.split()
 
     if len(parts) < 2:
-        raise InvalidFileFormatException('invalid sequence line, name and symbols must be present: `{line}` ')
+        raise InvalidFileFormatException(f'invalid sequence line, name and symbols must be present: `{line}` ')
 
     seq_name = parts[0]
     seq_symbols = parts[1]
-
-    if len(parts) > 2 and int(parts[2]) != len(seq_symbols):
-        raise InvalidFileFormatException('symbols checksum failed for line: `{line}`')
+    # ignoring potential cumulative count of symbols (optional parts[2])
+    # it's probably mainly for the user if he wishes to orient himself in the text file
+    # BioPython::MultipleSeqAlignment checks that all seqs have the same length, so an accidental user induced file change is covered
 
     return seq_name, seq_symbols
 
@@ -67,11 +67,12 @@ def parse_block(file):
         return
 
     while line.strip('*:. ') != '\n':   # stripping potential degree-of-conservation line
-        seq_name, seq = parse_block_line(line)
-        block_lines.append((seq_name, seq))
+        block_line_tuple = parse_block_line(line)
+        block_lines.append(block_line_tuple)
 
         line = file.readline()
 
+    # todo resolve,or is resolved with class PECF?
     # # line after degree-of-conservation line must be empty
     # if line != '\n' and file.readline() != '\n':
     #     raise InvalidFileFormatException('line dividing blocks must be empty')
@@ -137,15 +138,18 @@ class MSA(MultipleSeqAlignment):
                 if '-' in pair:
                     sum += gap_score
                 else:
-                    if not pair in scoring_matrix:
+                    if pair not in scoring_matrix:
                         pair = pair[1], pair[0]  # switch pair elements, in case matrix is just triangular
 
                     sum += scoring_matrix[pair]
 
         return sum
 
-    def sum_of_pairs(self, scoring_matrix, gap_score=0):
-        return sum((self.sum_of_pairs_column(i, scoring_matrix, gap_score) for i in range(len(self[0]))))
+    def sum_of_pairs(self, scoring_matrix, gap_score=0, start_pos=0, end_pos=None):
+        if end_pos is None:
+            end_pos = len(self[0])
+
+        return sum((self.sum_of_pairs_column(i, scoring_matrix, gap_score) for i in range(start_pos, end_pos)))
 
     def top_n_scoring_positions(self, n, scoring_matrix, gap_score=0):
         """ returns list of tuples (position, score) """
@@ -181,10 +185,16 @@ if __name__ == '__main__':
     print(msa.sum_of_pairs(scoring_matrix))
 
     # You should be able to specify a sequence in the MSA and the method would return conservation scores for the positions of the MSA.
-    print('Sum of pairs:', sum((msa.sum_of_pairs_column(i, scoring_matrix) for i in range(50, 100))))
+    print('Sum of pairs:', msa.sum_of_pairs(scoring_matrix, start_pos=50, end_pos=100))
 
     # Moreover, one should be able to identify top N scoring positions in the MSA.
     print(msa.top_n_scoring_positions(10, scoring_matrix))
 
     for seq_record in msa:
         print(seq_record.id)
+
+    # Read and parse MSA.
+    with open(os.path.dirname(__file__) + os.path.sep + 'test_data/meme-suit_clustalw-format') as f:
+        msa = parse_clustal(f)
+
+    print(msa)

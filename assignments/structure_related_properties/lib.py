@@ -65,7 +65,8 @@ def residues_get_neighboring_water_count(structure, residues, radius_a):
     return neighboring_water_count
 
 
-# todo neighbor_count = {r: 0 for r in residues} ?!!
+# inconsistent with other methods, this gets neighbors also from other residues in the structure, not just those supplied in `residues`
+# parameter
 # this does correlate positively with water count, because in core, probably the calphas are more far apart, as the need to fit
 # side-chains too in there! Solution -> Count atoms in the vicinity of residue, not residues
 def residues_get_neighbor_count(structure, residues, radius_a):
@@ -73,7 +74,7 @@ def residues_get_neighbor_count(structure, residues, radius_a):
 
     close_residue_pairs = ns.search_all(radius_a, level='R')  # undirected edges, unique
 
-    neighbor_count = defaultdict(int)
+    neighbor_count = {r: 0 for r in residues}
 
     for r1r2 in close_residue_pairs:
         for r in r1r2:

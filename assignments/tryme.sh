@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+# ipython kernel install --user --name=projectname
+
 for script in "edit_distance/distance.py"\
   "fasta/fasta.py"\
   "hamming/hamming.py"\

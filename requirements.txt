@@ -1,4 +1,6 @@
+Bio
 biopython
 matplotlib
 seaborn
 rmsd
+ipykernel

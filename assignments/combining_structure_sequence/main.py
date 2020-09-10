@@ -14,27 +14,15 @@ from ..clustal_parser import parse_clustal
 from ..pdb.pdb import *
 
 
-def aa_sequence_from_pdb_structure(structure):
-    aas = filter(lambda r: r.is_aa, structure.get_residues())
-    aas_in_order = [None] * len(aas)
-
-    for aa in aas:
-        _, seq_idx, _ = aa.id
-
-        try:
-            aas_in_order[seq_idx] = aa
-        except IndexError:
-            raise Exception(f'Inconsistent sequence indices of amino acids in structure, `{seq_idx}` too large')
-
-
 class MismatchError(Exception):
     pass
 
 
-def get_ungapped_aa_seq_to_msa_columns(msa_seq):
+def get_ungapped_resseq_to_msa_columns(msa_seq):
     # returns mapping from structure's (aa) sequence to column indices in the msa with corresponding aas
 
-    ungapped_seq_index_to_msa_columns = []
+    ungapped_seq_index_to_msa_columns = [None]  # dummy element because python indexing is zero-based, but first aa has SSSEQ=1,
+    # so None as a placeholder
 
     for i in range(len(msa_seq)):
         if msa_seq[i] != '-':  # is not gap
@@ -43,13 +31,12 @@ def get_ungapped_aa_seq_to_msa_columns(msa_seq):
     return ungapped_seq_index_to_msa_columns
 
 
-def assert_chain_aas_correspond_to_msa_seq_aas(chain_aas, msa_seq, ungapped_seq_index_to_msa_columns):
+def assert_chain_aas_correspond_to_msa_seq_aas(chain_aas, msa_seq, ungapped_resseq_to_msa_columns):
     for aa in chain_aas:
         chain_aa_code = protein_letters_3to1[aa.resname]
-        aa_seq_index = aa.id[1]
+        aa_seq_index = aa.id[1]  # residue sequence number is, in biopython, an int (wonder how they handle '31A' situation in a pdb file)
 
-        msa_aa_index = ungapped_seq_index_to_msa_columns[aa_seq_index - 1]  # -1 , because string indexing is zero-based, but first aa has
-        # SSSEQ=1
+        msa_aa_index = ungapped_resseq_to_msa_columns[aa_seq_index]
         try:
             msa_aa_code = msa_seq[msa_aa_index]
         except IndexError:
@@ -60,9 +47,8 @@ def assert_chain_aas_correspond_to_msa_seq_aas(chain_aas, msa_seq, ungapped_seq_
                                 f' at MSA column {msa_aa_index} (ungapped: {aa.id[1]})'))
 
 
-def conservation_rate_of_chain_aas(msa, chain_aas, aa_seq_to_msa_columns):
-    for aa in chain_aas:
-        yield msa.sum_of_pairs_column(aa_seq_to_msa_columns[aa.id[1]], MatrixInfo.blosum62)
+def conservation_rate_of_chain_aa(msa, aa, resseq_to_msa_columns):
+    return msa.sum_of_pairs_column(resseq_to_msa_columns[aa.id[1]], MatrixInfo.blosum62)
 
 
 if __name__ == '__main__':
@@ -75,19 +61,20 @@ if __name__ == '__main__':
     print(msa)
 
     model = PDBParser(QUIET=True).get_structure('1tup', os.path.dirname(__file__) + os.path.sep + 'test_data/1tup.pdb')[0]
-    chain = model['A']
+    chain = model['B']
 
     # note that the whole structure, not the single chain!!!
     hetero_atoms = list(get_hetero_atoms(model))
 
-    # now I'm interested just
-    d_analyzer = DistanceAnalyzer(chain)
+    # now I'm interested just in chains
 
     active_site_residues = set()
 
     for hetatm in hetero_atoms:
-        distances_residues_near = d_analyzer.residues_within_d_to_atom(hetatm, 2.5)
-        active_site_residues.update(r for d, r in distances_residues_near if r.is_aa)
+        residues_and_distances = residues_within_d_to_atom(chain, hetatm, 2.5)  # 5 u dna binding bych dal (avg hydrogen bond 3 angstrom
+        # the bond to hydrogen, non existent in crystal structures
+        # if hetatm.get_parent():
+        active_site_residues.update(r for r, d in residues_and_distances if r.is_aa)
 
     non_active_site_residues = list(set(chain.aa_residues).difference(active_site_residues))
     active_site_residues = list(active_site_residues)  # making it list, next code depends on the order
@@ -100,25 +87,32 @@ if __name__ == '__main__':
 
     # někde se to prostě liší -> warningy a to dané místo přeskočit
 
-    ungapped_seq_index_to_msa_columns = get_ungapped_aa_seq_to_msa_columns(msa_seq)
-    assert_chain_aas_correspond_to_msa_seq_aas(chain_aas, msa_seq, ungapped_seq_index_to_msa_columns)
+    ungapped_resseq_to_msa_columns = get_ungapped_resseq_to_msa_columns(msa_seq)
+    assert_chain_aas_correspond_to_msa_seq_aas(chain_aas, msa_seq, ungapped_resseq_to_msa_columns)
 
-    conservation_active = conservation_rate_of_chain_aas(msa, active_site_residues, ungapped_seq_index_to_msa_columns)
-    conservation_non_active = conservation_rate_of_chain_aas(msa, non_active_site_residues, ungapped_seq_index_to_msa_columns)
+    conservation_active = [conservation_rate_of_chain_aa(msa, aa, ungapped_resseq_to_msa_columns)
+                           for aa in active_site_residues]
 
+    conservation_non_active = [conservation_rate_of_chain_aa(msa, aa, ungapped_resseq_to_msa_columns)
+                               for aa in non_active_site_residues]
+
+    # gln 167 has relatively high conservation even if dna binding. But lys 101, gln 165, his have lower than avg - its dna which mutates?
+    # todo co to je prostě za protein? p53 ale asi jen DNA binding domains
     import matplotlib.pyplot as plt
 
+    print('avg conservation active: ', sum(conservation_active)/len(conservation_active))
+    print('avg conservation non-active: ', sum(conservation_non_active)/len(conservation_non_active))
+
     ax = sns.swarmplot(
-        x=list(itertools.chain((False for _ in range(len(non_active_site_residues))), (True for _ in range(len(active_site_residues))))),
+        x=list(itertools.chain(itertools.repeat(False, len(non_active_site_residues)), itertools.repeat(True, len(active_site_residues)))),
         y=list(itertools.chain(conservation_non_active, conservation_active)),
     )
     ax.set(xlabel='is active site', ylabel='conservation rate (SoP)')
     plt.show()
 
 
-    # todo more test data (results not great...)
     # did test with 5 angstroms not much better (to incorporate also DNA-binding regions. The zinc binding were only seen when 2.5 A)
-
+    # chain B and C highly conserved even dna-binding. However chain A dna-binding more variable than the rest of residues
 
     # dbref -- reference to the entry having the sequence
     # 1) resname to one letter
@@ -127,3 +121,5 @@ if __name__ == '__main__':
     # map alignment (may have insertions! to sequence ids!!)
 
     # option to map sequence to structure (just ignore leading or trailing aas, but the sequence has to be contiguous)
+
+

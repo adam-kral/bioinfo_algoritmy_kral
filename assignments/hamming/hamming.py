@@ -1,5 +1,3 @@
-#! /bin/env python3
-
 class IncompatibleLengthException(Exception):
     pass
 
@@ -26,5 +24,6 @@ if __name__ == '__main__':
     import os
     from ..fasta.fasta import parse_fasta
 
-    seq_record = parse_fasta(os.path.dirname(__file__) + os.path.sep + '../fasta/test_data/seq1.fasta')
+    seq_record = next(parse_fasta(os.path.dirname(__file__) + os.path.sep + '../fasta/test_data/seq1.fasta'))
     print(hamming_distance(seq_record.seq, seq_record.seq))
+

@@ -43,3 +43,7 @@ Clustal I parsed manually.
 
 ## 5 todo (Conservation determination from multiple aligned sequences)
 ## 7 todo (Computing structure-related properties)
+
+
+The 'frontend' for this library is the python (possible ipython notebooks). It's a good scripting language already and writing just a
+ wrapper for shell commandline execution doesn't make sense for me.

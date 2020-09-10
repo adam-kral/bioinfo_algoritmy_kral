@@ -326,7 +326,8 @@ if __name__ == '__main__':
     plt.show()
 
 # todo otestovat i s ruznymi gap penaltami?
-
+# todo ukládat do separate filu pdb (1) je naming v pymolu jasny (2) kdyz budu superimposovat vic chainu, nebude v tom bordel,
+#  bude to konzistentni
 
 
 

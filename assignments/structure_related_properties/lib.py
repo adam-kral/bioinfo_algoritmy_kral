@@ -3,19 +3,14 @@ import itertools
 import math
 import operator
 from collections import defaultdict
-from functools import reduce
-from itertools import chain, groupby
+from itertools import groupby
 
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
+from Bio.Alphabet.Reduced import hp_model_tab
 from Bio.Data.SCOPData import protein_letters_3to1
 from Bio.PDB import PDBParser, NeighborSearch
 from Bio.PDB.ResidueDepth import ResidueDepth, min_dist, get_surface
-
-from assignments.pdb.pdb import Residue
-from ..pdb import pdb
-
 
 # tdo move to ipynb
 np.set_printoptions(linewidth=200)
@@ -279,14 +274,14 @@ def zip_mappings(*mappings):
 def scatter(dict1, dict2, title=''):
     x, y = np.transpose([vals for k, vals in zip_mappings(dict1, dict2)])
 
-    plt.scatter(x, y, s=4)
+    plt.scatter(x, y, s=2)
     plt.title(title)
     plt.show()
 
 
 def is_surface(residues_min_dist_to_surface, residue):
     # hodnota nastavena podle toho, ze jsem se podival do pymolu, co tak zhruba je na povrchu a co ne
-    return residues_min_dist_to_surface[residue] < 2.2
+    return residues_min_dist_to_surface[residue] < 2.3
 
 def is_buried(residues_min_dist_to_surface, residue):
     return not is_surface(residues_min_dist_to_surface, residue)
@@ -372,19 +367,21 @@ if __name__ == '__main__':
 
     import seaborn as sns
 
-    sns.barplot(list(aa_types_surface.keys()), list(aa_types_surface.values())).set_title('surface')
+    aa_types = set(itertools.chain(aa_types_surface, aa_types_buried))
+    palette = dict(zip(aa_types, sns.color_palette('husl', len(aa_types))))
+
+    sns.barplot(list(aa_types_surface.keys()), list(aa_types_surface.values()), palette=palette).set_title('surface')
     plt.show()
 
-    sns.barplot(list(aa_types_buried.keys()), list(aa_types_buried.values())).set_title('buried')
+    sns.barplot(list(aa_types_buried.keys()), list(aa_types_buried.values()), palette=palette).set_title('buried')
     plt.show()
 
     # percentage of polar in buried/exposed
-    from Bio.Alphabet.Reduced import hp_model_tab
 
-    for aa_counts, polar_non_polar_str in ((aa_types_buried, 'buried'), (aa_types_surface, 'surface')):
+    for aa_counts, location_str in ((aa_types_buried, 'buried'), (aa_types_surface, 'surface')):
         polar_count = count_polar_aas(aa_counts)
 
-        print(f'Ratio of polar aas {polar_non_polar_str}: ', polar_count/sum((count for count in aa_counts.values())))
+        print(f'Ratio of polar aas {location_str}: ', polar_count/sum((count for count in aa_counts.values())))
 
     # quit()
     # compare two structures
@@ -406,10 +403,10 @@ if __name__ == '__main__':
             aa_types_surface = get_aa_counts(filter(is_surface_fn, model.aa_residues))
             aa_types_buried = get_aa_counts(filter(lambda aa: not is_surface_fn(aa), model.aa_residues))
 
-            for aa_counts, polar_non_polar_str in ((aa_types_buried, 'buried'), (aa_types_surface, 'surface')):
+            for aa_counts, location_str in ((aa_types_buried, 'buried'), (aa_types_surface, 'surface')):
                 polar_count = count_polar_aas(aa_counts)
 
-                results[struct][f'Ratio of polar aas {polar_non_polar_str}'] =  polar_count / sum((count for count in aa_counts.values()))
+                results[struct][f'Ratio of polar aas {location_str}'] =  polar_count / sum((count for count in aa_counts.values()))
 
         print(results)
 

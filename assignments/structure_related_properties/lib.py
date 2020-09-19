@@ -1,9 +1,13 @@
 #! /bin/env python3
+import itertools
 import math
 import operator
 from collections import defaultdict
 from functools import reduce
 from itertools import chain, groupby
+
+import numpy as np
+import matplotlib.pyplot as plt
 
 from Bio.Data.SCOPData import protein_letters_3to1
 from Bio.PDB import PDBParser, NeighborSearch
@@ -12,7 +16,6 @@ from Bio.PDB.ResidueDepth import ResidueDepth, min_dist, get_surface
 from assignments.pdb.pdb import Residue
 from ..pdb import pdb
 
-import numpy as np
 
 # tdo move to ipynb
 np.set_printoptions(linewidth=200)
@@ -33,13 +36,13 @@ def residues_get_neighboring_water_count(structure, residues, radius_a):
     water_or_aa_atoms = []
     neighboring_water_count = dict()
 
+    for r in residues:
+        water_or_aa_atoms.extend(r.get_atoms())
+        neighboring_water_count[r] = 0
+
     for r in structure.get_residues():
         if r.is_water:
             water_or_aa_atoms.extend(r.get_atoms())
-
-        if r in residues:
-            water_or_aa_atoms.extend(r.get_atoms())
-            neighboring_water_count[r] = 0
 
     ns = NeighborSearch(water_or_aa_atoms)
     close_residue_pairs = ns.search_all(radius_a, level='R')  # undirected edges, unique
@@ -65,21 +68,25 @@ def residues_get_neighboring_water_count(structure, residues, radius_a):
     return neighboring_water_count
 
 
-# inconsistent with other methods, this gets neighbors also from other residues in the structure, not just those supplied in `residues`
 # parameter
 # this does correlate positively with water count, because in core, probably the calphas are more far apart, as the need to fit
 # side-chains too in there! Solution -> Count atoms in the vicinity of residue, not residues
-def residues_get_neighbor_count(structure, residues, radius_a):
-    ns = NeighborSearch(list(structure.get_atoms()))
+def residues_get_neighbor_count(residues, radius_a):
+    neighbor_count = {}
+    atom_list = []
+
+    for r in residues:
+        neighbor_count[r] = 0
+        atom_list.extend(r.get_atoms())
+
+    ns = NeighborSearch(atom_list)
 
     close_residue_pairs = ns.search_all(radius_a, level='R')  # undirected edges, unique
-
-    neighbor_count = {r: 0 for r in residues}
 
     for r1r2 in close_residue_pairs:
         for r in r1r2:
             # ignore hetero atoms and water ('W') (possible residues arg doesn't contain them)
-            if r not in residues:
+            if r not in neighbor_count:
                 continue
 
             neighbor_count[r] += 1
@@ -246,9 +253,12 @@ def histogram_counts(counts, title):
     plt.show()
 
 
-# https://stackoverflow.com/a/46328797
-# {k:v1} {k:v2} -> {k: (v1, v2)}
 def zip_mappings(*mappings):
+    """ {k:v1} {k:v2} -> {k: (v1, v2)}
+
+    mappings have to have the same key sets (nothing more, or less)
+    based on https://stackoverflow.com/a/46328797
+    """
     keys_sets = map(set, mappings)
 
     first_keys = next(keys_sets)
@@ -274,14 +284,12 @@ def scatter(dict1, dict2, title=''):
     plt.show()
 
 
-
-
-def is_suface(residues_min_dist_to_surface, residue):
+def is_surface(residues_min_dist_to_surface, residue):
     # hodnota nastavena podle toho, ze jsem se podival do pymolu, co tak zhruba je na povrchu a co ne
-    return residues_min_dist_to_surface[residue] < 1.85
+    return residues_min_dist_to_surface[residue] < 2.2
 
 def is_buried(residues_min_dist_to_surface, residue):
-    return not is_suface(residues_min_dist_to_surface, residue)
+    return not is_surface(residues_min_dist_to_surface, residue)
 
 
 def get_ratio_surface_to_buried(model, is_surface_fn, is_buried_fn=None):
@@ -294,8 +302,8 @@ def get_ratio_surface_to_buried(model, is_surface_fn, is_buried_fn=None):
      )
 
 
-# returns dict {aa_three_letter_code: counts}
 def get_aa_counts(aas):
+    """ Returns dict {aa_three_letter_code: counts} """
     aa_counts = defaultdict(int)
 
     for aa in aas:
@@ -308,42 +316,52 @@ def count_polar_aas(aa_counts):
     return sum((count for aa_code, count in aa_counts.items() if hp_model_tab[protein_letters_3to1[aa_code]] == 'P'))
 
 
+def get_model_without_waters(model):
+    """ model without hoh e.g. for surface analysis (not interested in surface of solvation (water) layer!, only protein) """
+    model_without_waters = model.copy()
+
+    for chain in model_without_waters:
+        residue_ids_to_delete = []
+        for residue in chain:
+            if residue.is_water:
+                residue_ids_to_delete.append(residue.id)
+
+        for r_id in residue_ids_to_delete:
+            del chain[r_id]
+
+    return model_without_waters
+
+
 if __name__ == '__main__':
     import os
 
-    # structure = PDBParser(QUIET=True).get_structure('1tup', os.path.dirname(__file__) + '/../pdb/test_data/1tup.pdb')
 
     # structure = PDBParser(QUIET=True).get_structure('A2a receptor', os.path.dirname(__file__) + '/test_data/A2a_receptor.pdb')
-    structure = PDBParser(QUIET=True).get_structure('hemoglobin', os.path.dirname(__file__) + '/test_data/hemoglobin(1b0b).pdb')
+    from assignments.pdb.pdb import attach_custom_classes_to_pdb_structure_builder
+
+    attach_custom_classes_to_pdb_structure_builder()
+    structure = PDBParser(QUIET=True).get_structure('1tup', os.path.dirname(__file__) + '/test_data/1tup.pdb')
 
     model = next(structure.get_models())
 
+    # model without hoh for surface analysis (not interested in surface of solvation (water) layer!, only protein)
+    model_without_waters = get_model_without_waters(model)
+    cp_to_original_res = lambda r: model[r.get_parent().id][r.id]  # gets the corresponding residue in the original model
 
-    # for i in range(2, 15):
-    #     histogram_counts(residues_get_neighboring_water_count(structure, i).values())
-    #
-    # quit()
+    residue_depth = ResidueDepth(model_without_waters)
 
+    avg_residue_depth = {cp_to_original_res(r): r_d for r, (r_d, calpha_d) in residue_depth}
+    calpha_residue_depth = {cp_to_original_res(r): calpha_d for r, (r_d, calpha_d) in residue_depth}
 
-    import matplotlib
-    import matplotlib.pyplot as plt
-
-    residue_depth = ResidueDepth(model)
-
-    avg_residue_depth = {r: r_d for r, (r_d, calpha_d) in residue_depth}
-    calpha_residue_depth = {r: calpha_d for r, (r_d, calpha_d) in residue_depth}
-
-
-    surface = get_surface(model)
+    surface = get_surface(model_without_waters)
     min_dist_to_surface = {r: min(min_dist(atom.get_coord(), surface) for atom in r) for r in model.aa_residues}
 
     plt.hist(min_dist_to_surface.values())
     plt.title('avg residue depth')
     plt.show()
 
-
     # ratio of buried/exposed residues
-    is_surface_fn = lambda aa: is_suface(min_dist_to_surface, aa)
+    is_surface_fn = lambda aa: is_surface(min_dist_to_surface, aa)
 
     ratio_surface_to_buried = get_ratio_surface_to_buried(model, is_surface_fn)
     print('surface/buried: ', ratio_surface_to_buried)
@@ -379,11 +397,11 @@ if __name__ == '__main__':
         for struct in (a2a, hemo):
             model = struct[0]
 
-            surface = get_surface(model)
+            surface = get_surface(get_model_without_waters(model))
             min_dist_to_surface = {r: min(min_dist(atom.get_coord(), surface) for atom in r) for r in model.aa_residues}
-            is_surface_fn = lambda aa: is_suface(min_dist_to_surface, aa)
+            is_surface_fn = lambda aa: is_surface(min_dist_to_surface, aa)
 
-            results[struct]['ratio surface to buried'] = get_ratio_surface_to_buried(model, lambda aa: is_suface(min_dist_to_surface, aa))
+            results[struct]['ratio surface to buried'] = get_ratio_surface_to_buried(model, lambda aa: is_surface(min_dist_to_surface, aa))
 
             aa_types_surface = get_aa_counts(filter(is_surface_fn, model.aa_residues))
             aa_types_buried = get_aa_counts(filter(lambda aa: not is_surface_fn(aa), model.aa_residues))
@@ -395,7 +413,7 @@ if __name__ == '__main__':
 
         print(results)
 
-    closure()
+    # closure()
 
     # hemoglobin I z mušle LUCINA PECTINATA je monomerní rozpustný protein. V organismu je rozpuštěn v polární tekutině (hemolymfa),
     # má tedy na povrchu v naprosté většíně polární aminokyseliny
@@ -407,29 +425,29 @@ if __name__ == '__main__':
     # povrch:objem). A2a má protáhlejší, sudovitý tvar (7 agregovaných TM helixů) a má navíc kratší a delší netransmembránový helix,
     # což opět zvyšuje poměr povrchových aminokyselin.
 
-
-
+    # uplne nechapu to pravidelne rozdeleni u 2.
+    # Na zacatku to nula to neni, protoze van der Walls polomery
+    # totiz c beta maji 2 Radius. Ale stejne nevim, jestli to je surface nebo ne. Klidne muze byt videt jen maly "ruzek", takze ve finale
+    # by to nemelo byt surface.
+    # Co je vlastne surface? Van der Walls zbytků se významně podílí na povrchu proteinu. Jenže to já nedostanu. Já dostávám hloubku.
+    # Proto to asi není pocitově tak přesné.
 
     # quit()
 
     # residues_min_neighbor_atoms_count = residues_get_min_neighbor_atoms_count(model.aa_residues, 9)
 
-    for radius_a in np.arange(3,10.5, 0.5):
-        residues_min_neighbor_atoms_count = residues_get_min_neighbor_atoms_count(model.aa_residues, radius_a)
-        # scatter(min_dist_to_surface, residues_min_neighbor_atoms_count, f'min_neighbor_atoms {radius_a}/depth')
+    # for radius_a in np.arange(3, 10.5, 0.5):
+    #     residues_min_neighbor_atoms_count = residues_get_min_neighbor_atoms_count(model.aa_residues, radius_a)
+    #     scatter(min_dist_to_surface, residues_min_neighbor_atoms_count, f'min_neighbor_atoms {radius_a}/depth')
+    #
+    # for radius_a in np.arange(3, 10.5, 0.5):
+    #     residues_neighbor_atoms_count = residues_get_neighbor_atom_count(model.aa_residues, radius_a)
+    #     scatter(min_dist_to_surface, residues_neighbor_atoms_count, f'neighbor_atoms {radius_a}/depth')
 
-    for radius_a in np.arange(3,10.5, 0.5):
-        residues_neighbor_atoms_count = residues_get_neighbor_atom_count(model.aa_residues, radius_a)
-        # scatter(min_dist_to_surface, residues_neighbor_atoms_count, f'neighbor_atoms {radius_a}/depth')
-
-
-    neighboring_water_counts = residues_get_neighboring_water_count(model, model.aa_residues, 3)
+    neighboring_water_counts = residues_get_neighboring_water_count(model, model.aa_residues, 3.5)
     histogram_counts(neighboring_water_counts.values(), 'neighboring water')
 
-    print(max(neighboring_water_counts.items(), key=lambda r_and_count: r_and_count[1]))
-    res, count = max(neighboring_water_counts.items(), key=lambda t: t[1])
-
-    neighbor_counts = residues_get_neighbor_count(model, model.aa_residues, 5)
+    neighbor_counts = residues_get_neighbor_count(model.aa_residues, 5)
     histogram_counts(neighbor_counts.values(), 'aa neighbors')
 
     neighbor_atom_counts = residues_get_neighbor_atom_count(model.aa_residues, 4.5)
@@ -439,12 +457,12 @@ if __name__ == '__main__':
     ratio_water_aa_atoms = {res: wc/aac for res, (wc, aac) in zip_mappings(neighboring_water_counts, neighbor_atom_counts)}
 
     normalized_neighbor_atom_counts = {r: ac/r.count_atoms for r, ac in neighbor_atom_counts.items()}  # tohle je stejne naprd,
-    # zalezi na polomeru ze kt. beru neighbor atoms...
+    # neni to linearni s poctem atomu (spis afinní funkce) a ještě záleží na tvaru ak
     ratio_water_normalized_aa_atoms = {k: wc/aac for k, (wc, aac) in zip_mappings(neighboring_water_counts, normalized_neighbor_atom_counts)}
 
 
 
-    residues_min_neighbor_residues_count = residues_get_min_neighbor_residues_count(model.aa_residues, 8.5) #7
+    residues_min_neighbor_residues_count = residues_get_min_neighbor_residues_count(model.aa_residues, 8.5)
     residues_min_neighbor_atoms_count = residues_get_min_neighbor_atoms_count(model.aa_residues, 8.5)
 
     vars = np.transpose([values for k, values in zip_mappings(
@@ -475,12 +493,33 @@ if __name__ == '__main__':
     plt.title('avg residue depth')
     plt.show()
 
-    scatter(avg_residue_depth, neighboring_water_counts, 'water_count/depth')
-    scatter(avg_residue_depth, neighbor_counts, 'aa_neighbors/depth')
-    scatter(avg_residue_depth, normalized_neighbor_atom_counts, 'normalized_atom_neighbors/depth')
-    scatter(avg_residue_depth, neighbor_atom_counts, 'neighbor_atoms/depth')
-    scatter(avg_residue_depth, residues_min_neighbor_residues_count, 'min_neighbor_res/depth')
-    scatter(avg_residue_depth, residues_min_neighbor_atoms_count, 'min_neighbor_atoms/depth')
+
+    scatter(min_dist_to_surface, neighboring_water_counts, 'water_count/depth')
+    scatter(min_dist_to_surface, neighbor_counts, 'aa_neighbors/depth')
+    scatter(min_dist_to_surface, normalized_neighbor_atom_counts, 'normalized_atom_neighbors/depth')
+    scatter(min_dist_to_surface, neighbor_atom_counts, 'neighbor_atoms/depth')
+    scatter(min_dist_to_surface, residues_min_neighbor_residues_count, 'min_neighbor_res/depth')
+    scatter(min_dist_to_surface, residues_min_neighbor_atoms_count, 'min_neighbor_atoms/depth')
+
+# blbost, nejlepsi je takova, ze je vsechno v jednom kvadrantu, ledaze by jeste hrala mean cluster distance vzdalenost, ale jak to pak
+# budu vazit s tim, ze ma co nejmin data pointu byt ve dvou kvadrantech, mozna by stacilo knn a pak tam prolozit to? Dukaz
+def compute_perpendicular_boundaries(xs, ys):
+    (unique_xs, index_to_unique_x), (unique_ys, index_to_unique_y) = map(lambda ar: np.unique(ar, return_inverse=True), (xs, ys))
+
+    occurences = np.zeros((len(unique_xs), len(unique_ys)))
+
+    y_index = {x: [y for _, y in group] for x, group in itertools.groupby(zip(xs, ys), lambda x_y: x_y[0])}
+    x_index = {y: [x for x, _ in group] for y, group in itertools.groupby(zip(xs, ys), lambda x_y: x_y[1])}
+
+    for i in range(len(xs)):
+        for j in range(len(ys)):
+            occurences[index_to_unique_x[i], index_to_unique_y[j]] += 1
+
+    for i in range(occurences.shape[0]):
+
+
+        for j in range(1, occurences.shape[1]):
+            pass
 
 
 
@@ -506,16 +545,5 @@ if __name__ == '__main__':
 #   Maybe surface aa are larger and have more atoms -> can result in more neighbor atom counts
 #   -> better to use ratio_water_aa_atoms
 
-#y = 9/6 x + 5
-
-# try min from res. atoms atom count (and res. count)
 # jeste se podivat na ty sousedni zbytky, kolik maji sousedu? a to taky vzit v potaz
-# limit >=85, někdy >=84 (leu B137)
-
-# plot is on surface vs  min atoms
-
-# set limits for buried/ surface (let's say surface up to 4?
-# ratio sur/bur
-# hist aa composition sur/bur
-# polar in core vs sur
-# two test data struct sur/bur and portion of pol (also on sur/bur and as a whole) Interpret differences
+# atoms surface limit >=85, někdy >=84 (leu B137)

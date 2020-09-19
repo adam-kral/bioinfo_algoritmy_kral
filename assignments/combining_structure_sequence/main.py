@@ -60,6 +60,7 @@ if __name__ == '__main__':
 
     print(msa)
 
+    attach_custom_classes_to_pdb_structure_builder()
     model = PDBParser(QUIET=True).get_structure('1tup', os.path.dirname(__file__) + os.path.sep + 'test_data/1tup.pdb')[0]
     chain = model['B']
 
@@ -110,9 +111,10 @@ if __name__ == '__main__':
     ax.set(xlabel='is active site', ylabel='conservation rate (SoP)')
     plt.show()
 
-
+    # todo EDIT, now that fixed +-1 error
     # did test with 5 angstroms not much better (to incorporate also DNA-binding regions. The zinc binding were only seen when 2.5 A)
     # chain B and C highly conserved even dna-binding. However chain A dna-binding more variable than the rest of residues
+
 
     # dbref -- reference to the entry having the sequence
     # 1) resname to one letter

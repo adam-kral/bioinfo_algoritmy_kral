@@ -166,8 +166,8 @@ if __name__ == '__main__':
     attach_custom_classes_to_pdb_structure_builder()
     structure = PDBParser(QUIET=True).get_structure('1tup', os.path.dirname(__file__) + os.path.sep + 'test_data/1tup.pdb')
 
-    print(structure.count_residues())
-    print(structure.count_atoms())
+    print(structure.count_residues)
+    print(structure.count_atoms)
 
     hetero_atoms = list(get_hetero_atoms(structure))
 

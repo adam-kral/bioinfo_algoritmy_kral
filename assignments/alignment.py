@@ -3,8 +3,8 @@ from io import StringIO
 import numpy as np
 
 
-# represents the result of alignment computation, there can be more optimal alignments
 class Alignment:
+    """ Represents one result of alignment computation, there can be more results -- optimal alignments """
     def __init__(self, score, alignment_tuple):
         self.score = score
         self.alignment_tuple = alignment_tuple
@@ -34,13 +34,11 @@ class AlignmentComputer:
         self.s1 = s1
         self.s2 = s2
 
-    # I save the path when computing (there's no other option, if the score is so much variable, it is not possible to reconstruct the
-    # alignment
+    # I save the path (steps) when computing
+    #  (there's no other option, if the score is so much variable, it is not possible to reconstruct the alignment
     #  in O(m+n) time if I did not save the paths -- example -> knowing if previous step was gap extension/open (different score values)
-    #  requires knowing if the step preceding to the previous one was gap extension/open, till the start)
+    #  requires knowing if the step preceding to the previous one was gap extension/open, and so forth till the beginning)
 
-    # I could reconstruct the alignment in the EditDistance assignment, I did it that way, but now, for the superposition assignment,
-    # I needed more general functions
     def _compute_matrix(self):
         s1 = self.s1
         s2 = self.s2

@@ -1,6 +1,3 @@
-#! /bin/env python3
-
-from collections import OrderedDict
 from unittest.mock import patch
 from Bio.PDB import PDBParser, is_aa
 

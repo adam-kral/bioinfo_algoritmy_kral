@@ -1,15 +1,10 @@
-#! /bin/env python3
-
-
 from assignments.alignment import AlignmentComputer, Alignment
 
 
-# represents the result of Edit Distance calculation
-# is created from the computed matrix
 class EditDistanceAlignment(Alignment):
-    # Alignment class works with scores, not distances. The higher score, the better match (the lower distance)
     @property
     def distance(self):
+        """ The base class, Alignment, works with scores, not distances. The higher score, the better match (the lower distance) """
         return -self.score
 
 

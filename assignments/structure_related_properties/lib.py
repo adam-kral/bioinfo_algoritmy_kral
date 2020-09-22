@@ -1,4 +1,3 @@
-#! /bin/env python3
 import itertools
 import math
 import operator
@@ -11,20 +10,6 @@ from Bio.Alphabet.Reduced import hp_model_tab
 from Bio.Data.SCOPData import protein_letters_3to1
 from Bio.PDB import PDBParser, NeighborSearch
 from Bio.PDB.ResidueDepth import ResidueDepth, min_dist, get_surface
-
-# tdo move to ipynb
-np.set_printoptions(linewidth=200)
-
-# is_buried
-# is_exposed
-# is_core (= is_buried)
-# could be defined, by the ratio of amino of the chain (or model) vs other residues (but the first test data has no hetatms)
-# no – try it by the count, (and compare it with ratio residue/water where there is water in the pdb)
-
-# 3) visualize residue/water ratio bar chart with residue count bar chart (e.g. inner capsule with water should give differences,
-# but is that rare?)
-# (2) compute every CA to every other CA and just by that, that's ok, because what, 1000 calphas is just a million computations..
-# 1) compare speed to NeighborSearch.search_all(radius, level='R'), visualize on bar chart, then define cutoff values for buried/exposed.
 
 
 def residues_get_neighboring_water_count(structure, residues, radius_a):
@@ -63,9 +48,6 @@ def residues_get_neighboring_water_count(structure, residues, radius_a):
     return neighboring_water_count
 
 
-# parameter
-# this does correlate positively with water count, because in core, probably the calphas are more far apart, as the need to fit
-# side-chains too in there! Solution -> Count atoms in the vicinity of residue, not residues
 def residues_get_neighbor_count(residues, radius_a):
     neighbor_count = {}
     atom_list = []
@@ -89,10 +71,12 @@ def residues_get_neighbor_count(residues, radius_a):
     return neighbor_count
 
 
-# for every atom in a residue,
-#   choose the atom that has minimum number of neighboring entities
-#   return the value for that residue
+#
 def residues_get_min_neighbor_entities(residues, radius_a, neighbor_function):
+    """ for every atom in a residue,
+           choose the atom that has minimum number of neighboring entities
+               return the count for that residue
+    """
     residues = sorted(residues)
 
     assert len(residues) > 0
@@ -145,75 +129,10 @@ def residues_get_min_neighbor_residues_count(residues, radius_a):
     return residues_get_min_neighbor_entities(residues, radius_a, lambda pairs: set(a2.get_parent() for a1, a2 in pairs))
 
 
-
-# 1) make close_atom_pairs symmetric
-# 2) group_by residue and group_by atom
-#       remove same-residue pairs
-# 3) count atom's subgroup (either count all, or unique residues.
-# 4) save a possible minimum (for residue's atoms)
-# 5) all other residues should get 0
-
-# minimum of all residue's atom
-
-
-# def residues_get_min_neighbor_atoms_count(residues, radius_a):
-#     residues = sorted(residues)
-#
-#     assert len(residues) > 0
-#
-#     residue_atoms = []
-#     result = dict()
-#
-#     for r in residues:
-#         residue_atoms.extend(r.get_atoms())
-#         result[r] = 0
-#
-#     ns = NeighborSearch(residue_atoms)
-#
-#     close_atom_pairs = ns.search_all(radius_a, level='A')
-#
-#     close_atom_pairs.sort(lambda pair: (pair[0].get_parent(), pair[0]))
-#
-#     i_residues = iter(residues)
-#     cur_residue = 'placeholder'
-#
-#     last_atom = None
-#     neighboring_atoms = 0
-#     min_for_cur_residue = math.inf
-#
-#     for atom, neighbor_atom in close_atom_pairs:
-#         if cur_residue != atom.get_parent():
-#             result[cur_residue] = neighboring_atoms
-#             cur_residue = next(i_residues)
-#
-#         while cur_residue != atom.get_parent():
-#             result[cur_residue] = 0
-#             cur_residue = next(i_residues)
-#
-#         if last_atom != atom:
-#             if neighboring_atoms < min_for_cur_residue:
-#                 min_for_cur_residue = neighboring_atoms
-#             neighboring_atoms = 0
-#
-#         neighboring_atoms += 1
-#
-#     if neighboring_atoms < min_for_cur_residue:
-#         min_for_cur_residue = neighboring_atoms
-#
-#     result[cur_residue] = min_for_cur_residue
-#
-#     for r in i_residues:
-#         result[r] = 0
-#
-#     del result['placeholder']
-#
-#     return result
-
-
-# for every residue
-#   count unique number of atoms within a radius from the residue
-#       (however ignoring atoms within the residue itself)
 def residues_get_neighbor_atom_count(residues, radius_a):
+    """ for every residue
+            count unique number of atoms within a radius from the residue however ignoring atoms within the residue itself """
+
     residue_atoms = []
     neighbor_atom_count = dict()
     already_counted_atoms = defaultdict(set)
@@ -383,7 +302,6 @@ if __name__ == '__main__':
 
         print(f'Ratio of polar aas {location_str}: ', polar_count/sum((count for count in aa_counts.values())))
 
-    # quit()
     # compare two structures
     def closure():
         a2a = PDBParser(QUIET=True).get_structure('A2a receptor', os.path.dirname(__file__) + '/test_data/A2a_receptor.pdb')
@@ -410,36 +328,17 @@ if __name__ == '__main__':
 
         print(results)
 
-    # closure()
+    closure()
 
-    # hemoglobin I z mušle LUCINA PECTINATA je monomerní rozpustný protein. V organismu je rozpuštěn v polární tekutině (hemolymfa),
-    # má tedy na povrchu v naprosté většíně polární aminokyseliny
-    # A2a je receptor spřažený s G proteinem. Obsahuje 7 transmembránových alfa-helixů. Jeho povrch je tedy ve značné míře v
-    # kontaktu s alifatickými řetězci fosfolipidů lipidcké dvojvrstvy. V těchto hydrofobních místech jsou na povrchu proteinu převážně
-    # kompatibilní hydrofobní aminokyseliny. Celkově je na povrchu proteinu zhruba polovina hydrofobních a polovina polárních aminokyselin.
+    residues_min_neighbor_atoms_count = residues_get_min_neighbor_atoms_count(model.aa_residues, 9)
 
-    # hemoglobin má nižší poměr povrchových aminokyselin, protože jde o globulární protein (kulovitý tvar, nízký poměr
-    # povrch:objem). A2a má protáhlejší, sudovitý tvar (7 agregovaných TM helixů) a má navíc kratší a delší netransmembránový helix,
-    # což opět zvyšuje poměr povrchových aminokyselin.
+    for radius_a in np.arange(3, 10.5, 0.5):
+        residues_min_neighbor_atoms_count = residues_get_min_neighbor_atoms_count(model.aa_residues, radius_a)
+        scatter(min_dist_to_surface, residues_min_neighbor_atoms_count, f'min_neighbor_atoms {radius_a}/depth')
 
-    # uplne nechapu to pravidelne rozdeleni u 2.
-    # Na zacatku to nula to neni, protoze van der Walls polomery
-    # totiz c beta maji 2 Radius. Ale stejne nevim, jestli to je surface nebo ne. Klidne muze byt videt jen maly "ruzek", takze ve finale
-    # by to nemelo byt surface.
-    # Co je vlastne surface? Van der Walls zbytků se významně podílí na povrchu proteinu. Jenže to já nedostanu. Já dostávám hloubku.
-    # Proto to asi není pocitově tak přesné.
-
-    # quit()
-
-    # residues_min_neighbor_atoms_count = residues_get_min_neighbor_atoms_count(model.aa_residues, 9)
-
-    # for radius_a in np.arange(3, 10.5, 0.5):
-    #     residues_min_neighbor_atoms_count = residues_get_min_neighbor_atoms_count(model.aa_residues, radius_a)
-    #     scatter(min_dist_to_surface, residues_min_neighbor_atoms_count, f'min_neighbor_atoms {radius_a}/depth')
-    #
-    # for radius_a in np.arange(3, 10.5, 0.5):
-    #     residues_neighbor_atoms_count = residues_get_neighbor_atom_count(model.aa_residues, radius_a)
-    #     scatter(min_dist_to_surface, residues_neighbor_atoms_count, f'neighbor_atoms {radius_a}/depth')
+    for radius_a in np.arange(3, 10.5, 0.5):
+        residues_neighbor_atoms_count = residues_get_neighbor_atom_count(model.aa_residues, radius_a)
+        scatter(min_dist_to_surface, residues_neighbor_atoms_count, f'neighbor_atoms {radius_a}/depth')
 
     neighboring_water_counts = residues_get_neighboring_water_count(model, model.aa_residues, 3.5)
     histogram_counts(neighboring_water_counts.values(), 'neighboring water')
@@ -481,15 +380,12 @@ if __name__ == '__main__':
         residues_min_neighbor_atoms_count
     )])
 
-    print(np.corrcoef(vars))  # prezentovat, ze to celkem funguje (korelace 0.75, i kdyz ta neni az tak dobra metrika, mozna clusterovani
-    # nejak? Mohl bych pouzit 2-means na tom scatteru, ale s cim to budu porovnavat a jak skorovat?)
-    # mozna mi 2-means urci cutoff hranice automaticky (s tim, ze tam maji byt dva clustery) a pak spocitam, false positives,
-    # false negatives
+    np.set_printoptions(linewidth=200)  # for the large correlation matrix
+    print(np.corrcoef(vars))
 
     plt.hist(avg_residue_depth.values())
     plt.title('avg residue depth')
     plt.show()
-
 
     scatter(min_dist_to_surface, neighboring_water_counts, 'water_count/depth')
     scatter(min_dist_to_surface, neighbor_counts, 'aa_neighbors/depth')
@@ -497,50 +393,3 @@ if __name__ == '__main__':
     scatter(min_dist_to_surface, neighbor_atom_counts, 'neighbor_atoms/depth')
     scatter(min_dist_to_surface, residues_min_neighbor_residues_count, 'min_neighbor_res/depth')
     scatter(min_dist_to_surface, residues_min_neighbor_atoms_count, 'min_neighbor_atoms/depth')
-
-# blbost, nejlepsi je takova, ze je vsechno v jednom kvadrantu, ledaze by jeste hrala mean cluster distance vzdalenost, ale jak to pak
-# budu vazit s tim, ze ma co nejmin data pointu byt ve dvou kvadrantech, mozna by stacilo knn a pak tam prolozit to? Dukaz
-def compute_perpendicular_boundaries(xs, ys):
-    (unique_xs, index_to_unique_x), (unique_ys, index_to_unique_y) = map(lambda ar: np.unique(ar, return_inverse=True), (xs, ys))
-
-    occurences = np.zeros((len(unique_xs), len(unique_ys)))
-
-    y_index = {x: [y for _, y in group] for x, group in itertools.groupby(zip(xs, ys), lambda x_y: x_y[0])}
-    x_index = {y: [x for x, _ in group] for y, group in itertools.groupby(zip(xs, ys), lambda x_y: x_y[1])}
-
-    for i in range(len(xs)):
-        for j in range(len(ys)):
-            occurences[index_to_unique_x[i], index_to_unique_y[j]] += 1
-
-    for i in range(occurences.shape[0]):
-
-
-        for j in range(1, occurences.shape[1]):
-            pass
-
-
-
-
-    # pro zkoumani divnych ak (vysoka hloubka podle programu surface, ale já ukazuju málo neighbors a obráceně),
-    # pouzit seaborn a nejak interaktivni chart, jestli jde, abych se na ty ak rychle podival v pymolu?
-
-
-    # outliers = [
-    #     (k, (x, y)) for k, (x, y)
-    #         in sorted(zip_mappings(avg_residue_depth, neighbor_counts),
-    #                   key=lambda k_xy: k_xy[1][0])
-    #
-    #     if y <= (9/6 * x + 5)
-    # ]
-    #
-    # print([(k.get_parent(), k) for k, (x, y) in outliers])
-    # print('f')
-
-
-# todo map atom to residue
-# against neighbor_atom_counts:
-#   Maybe surface aa are larger and have more atoms -> can result in more neighbor atom counts
-#   -> better to use ratio_water_aa_atoms
-
-# jeste se podivat na ty sousedni zbytky, kolik maji sousedu? a to taky vzit v potaz
-# atoms surface limit >=85, někdy >=84 (leu B137)

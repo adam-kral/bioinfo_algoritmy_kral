@@ -10,8 +10,9 @@ from Bio.SubsMat import MatrixInfo
 
 # parser based on http://meme-suite.org/doc/clustalw-format.html
 
-
 # block = block of text where a line contains a chunk of the aligned sequence
+
+
 class MSAFromBlocksBuilder:
     def __init__(self, first_block):
         self.seqs = []
@@ -72,7 +73,7 @@ def parse_block(file):
 
         line = file.readline()
 
-    # todo resolve,or is resolved with class PECF?
+    # future todo resolve,or is resolved with class ProperlyEndedClustalFile?
     # # line after degree-of-conservation line must be empty
     # if line != '\n' and file.readline() != '\n':
     #     raise InvalidFileFormatException('line dividing blocks must be empty')

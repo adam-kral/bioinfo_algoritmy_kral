@@ -1,2 +1,6 @@
 venv/
 .idea/
+todo.txt
+*.pyc
+*.pyo
+__pycache__/

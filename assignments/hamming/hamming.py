@@ -2,8 +2,8 @@ class IncompatibleLengthException(Exception):
     pass
 
 
-# seq1/2 indexable container, its elements comparable with !=
 def hamming_distance(seq1, seq2):
+    """ :param seq1/2, indexable container, its elements comparable with != """
     if len(seq1) != len(seq2):
         raise IncompatibleLengthException()
 

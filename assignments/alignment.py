@@ -2,6 +2,7 @@ from collections import namedtuple
 from io import StringIO
 import numpy as np
 
+# this only file is not an assignment by itself, it just defines an abstract class AlignmentComputer, used by more assignments
 
 class Alignment:
     """ Represents one result of alignment computation, there can be more results -- optimal alignments """

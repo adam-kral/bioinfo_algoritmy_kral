@@ -35,7 +35,6 @@ class Blosum62AlignmentComputer(AlignmentComputer):
         except KeyError:
             return MatrixInfo.blosum62[b, a]
 
-    #
     def _gap(self, i, j, paths, sequence_length, gap_position_in_sequence, gap_ext_flag):
         """  parameter `gap_position_in_sequence` is before which letter the gap is introduced (zero-based). E.g. 0 means leading gap
         (before 0th residue/letter)
@@ -129,7 +128,6 @@ def get_c_alpha_coords_matched_residues(alignment, pp1, pp2):
     return P, Q
 
 
-#
 def center_and_kabsch(P, Q):
     """ returns centroid of P, Q and a rotational matrix (in subsequent analyses, you may want to subtract centroidP/Q from your point sets)
     that minimizes RMSD between corresponding points in P and Q, *when applied to P* """
@@ -190,7 +188,7 @@ def superimpose_chain(chain1, pp1, pp2, alignment):
 
     for atom in chain1.get_atoms():
         atom.coord = np.dot(rotation_matrix, atom.coord - centroidP) + centroidQ
-        # side effect to pp
+        # side effect to pp1, coordinates will change there too, as the object has identical Atom objects
 
     # run `get_c_alpha_coords_matched_residues` again to get coords of *kabsch-transformed* c_alphas
     # chain1 coords have changed. Therefore, also residues in pp1 have the coords changed (share same objects)

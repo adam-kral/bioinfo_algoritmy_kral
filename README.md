@@ -1,5 +1,5 @@
 ## Setup
-Requires Python 3.7 or newer (definitely won't work with Python 3.4, 3.5 might).
+Requires Python 3.7 or newer.
 ```
 # in repository root directory
 
@@ -13,7 +13,7 @@ Go to [http://mgltools.scripps.edu/downloads#msms](http://mgltools.scripps.edu/d
 On linux, I had to extract the archive and for BioPython
  to find it, I linked the binary to `/usr/local/bin/msms` (should be in PATH under `msms`).
  
-    sudo ln /path_to_extracted_archive/msms.x86_64Linux2.2.6.1 /usr/local/bin/msms1
+    sudo ln /path_to_extracted_archive/msms.x86_64Linux2.2.6.1 /usr/local/bin/msms
 
 
 If you don't have jupyter notebook already installed you can install it for your Python, or for this virtualenv:

@@ -71,7 +71,6 @@ def residues_get_neighbor_count(residues, radius_a):
     return neighbor_count
 
 
-#
 def residues_get_min_neighbor_entities(residues, radius_a, neighbor_function):
     """ for every atom in a residue,
            choose the atom that has minimum number of neighboring entities
@@ -248,7 +247,6 @@ def get_model_without_waters(model):
 
 if __name__ == '__main__':
     import os
-
 
     # structure = PDBParser(QUIET=True).get_structure('A2a receptor', os.path.dirname(__file__) + '/test_data/A2a_receptor.pdb')
     from assignments.pdb.pdb import attach_custom_classes_to_pdb_structure_builder

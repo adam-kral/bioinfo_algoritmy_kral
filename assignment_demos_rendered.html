@@ -14268,10 +14268,6 @@ have at least one atom on/close to the triangulated surface – then it could be
 <span class="kn">from</span> <span class="nn">Bio.PDB</span> <span class="kn">import</span> <span class="n">PDBParser</span><span class="p">,</span> <span class="n">ResidueDepth</span><span class="p">,</span> <span class="n">get_surface</span>
 <span class="kn">from</span> <span class="nn">Bio.PDB.ResidueDepth</span> <span class="kn">import</span> <span class="n">min_dist</span>
 
-<span class="c1"># # on my computer the plots were 2x smaller in the jupyter notebook somehow (probably web+retina)</span>
-<span class="c1"># print(plt.rcParams[&#39;figure.figsize&#39;])</span>
-<span class="c1"># plt.rcParams[&#39;figure.figsize&#39;] = list(map(lambda x: x*2, plt.rcParams[&#39;figure.figsize&#39;]))</span>
-
 <span class="kn">from</span> <span class="nn">assignments.pdb.pdb</span> <span class="kn">import</span> <span class="n">attach_custom_classes_to_pdb_structure_builder</span>
 
 <span class="n">attach_custom_classes_to_pdb_structure_builder</span><span class="p">()</span>
@@ -14991,7 +14987,7 @@ Ratio of polar aas surface:  0.7297830374753451
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>The structure for this analysis is human tumor suppressor p53 (or the DNA-binding domain) complexed with DNA. The PDB structure file contains three protein chains (homotetrameric in vivo) and two DNA chains.</p>
 <p>In the MSA, there is a sequence that designates the protein chain (the three chains are identical in sequence). We can therefore run the analysis with any of the polypeptide chains.</p>
-<p>I will run the analysis for all chains at once, but one may use the first line of the following code to run it for a specific chain.</p>
+<p>I will run the analysis for all chains at once, but one may easily modify the snippet below to run it for a specific chain.</p>
 
 </div>
 </div>
@@ -15023,7 +15019,7 @@ Ratio of polar aas surface:  0.7297830374753451
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>We will gather all residues that form active sites. That is, they have a hetero atom (small ligand, DNA) in within a set distance.</p>
+<p>We will gather all residues that form active sites. That is, they have a hetero atom (small ligand, DNA) within a set distance.</p>
 
 </div>
 </div>
@@ -15219,7 +15215,7 @@ avg conservation non-active:  6127.706293706294
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>The last line initializes a container for superposition RMSD's that we'll use and discuss in the comparison at the end. Another output of this program will be the superimposed structures. More precisely just the first 'a2a' structure with altered coordinates to fit to the orignal '3eml' structure.</p>
-<p>Thus to see the alignments in PyMOL, for example, load the original '3eml' structure and then the output files (in the working directory) named 'a2a_\&lt;alignment method&gt;.pdb'</p>
+<p>Thus to see the alignments in PyMOL, for example, load the original '3eml' structure and then the output files (in the working directory) named 'a2a_&lt;alignment method&gt;.pdb'</p>
 
 </div>
 </div>
@@ -15401,7 +15397,7 @@ warning  2  polypeptides from one chain, extending first pp
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>The comparison of the superpositions follows. Besides looking at the output structures in PyMOL and checking the RMSDs and matched residues count, I wanted to compare the superpositions even if the matched residues count is different. Is a superposition with 150 matched residues and RMSD of 5 angstroms better than a superposition with 200 matched residues and RMSD of 7.5 angstroms? What if some residues are matched (unfortunately), and their deviation is enormous in comparison to the rest of residues, which would make themselves a good superposition with good RMSD?</p>
+<p>The comparison of the superpositions follows. Besides looking at the output structures in PyMOL and checking the RMSDs and matched residues count, I wanted to compare the superpositions even if the matched residues count is different. Is a superposition with 150 matched residues and RMSD of 5 angstroms better than a superposition with 200 matched residues and RMSD of 7.5 angstroms? What if some residues are matched (unfortunately), and their deviation is enormous in comparison to the rest of residues, which would make on their own a good superposition with good RMSD?</p>
 <p>Therefore I decided to generate a sequence of RMSDs for a superposition, n-th item computed as an RMSD of n atom pairs with the lowest deviation of all superposition's pairs. In the line plot below, you can see the RMSD sequences for all the superpositions computed above.</p>
 
 </div>
